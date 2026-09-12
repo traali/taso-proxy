@@ -1,6 +1,10 @@
 name = "taso-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-08-30"
+workers_dev = true
+# Cloudflare Git: production branch main, deploy `npx wrangler deploy`, root `/`.
+# Do not rename this Worker — houses hardcode taso-proxy.sakkoja.workers.dev.
+
 
 # Public TASO keys — already in each house's browser client.
 [vars]
