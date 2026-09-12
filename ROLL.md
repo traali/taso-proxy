@@ -1,4 +1,7 @@
-# Chapter roll
+## 2026-09-12 — Origin 403 not leaked to the browser
+- **Office / Author:** Cellarer
+- **Verdict:** PASS
+- **Summary:** getGroup retries without `matches=1`. Upstream 403 becomes JSON `{call.status:error}` HTTP 200 so houses fall back to origin without a red console 403.
 
 ## 2026-09-12 — Git-connected deploy
 - **Office / Author:** Cellarer

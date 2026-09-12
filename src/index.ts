@@ -171,11 +171,26 @@ export default {
             raw = retry.raw
         }
 
+        // getGroup?matches=1 is often 403 at Torneopal; standings live on getGroup without matches.
+        if ((status === 403 || raw.indexOf('{') < 0) && endpoint === 'getGroup' && taso.searchParams.has('matches')) {
+            const slim = new URL(taso.toString())
+            slim.searchParams.delete('matches')
+            slim.searchParams.set('_cb', String(Date.now()))
+            const retry = await tasoFetch(slim, cfg.referer, cfg.accept)
+            status = retry.status
+            raw = retry.raw
+        }
+
         const ok = status >= 200 && status < 300 && raw.indexOf('{') >= 0
         const policy = ok ? cachePolicy(endpoint, raw) : { cc: 'no-store', name: 'bypass-403', store: false }
 
-        const out = new Response(raw, {
-            status,
+        // Never leak origin 403 as HTTP 403 — the browser paints it red and the client
+        // already falls back to origin. Return a JSON error envelope instead.
+        const outStatus = ok ? status : 200
+        const outBody = ok ? raw : JSON.stringify({ call: { status: 'error', http: status }, error: 'upstream' })
+
+        const out = new Response(outBody, {
+            status: outStatus,
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
                 'Cache-Control': policy.cc,
