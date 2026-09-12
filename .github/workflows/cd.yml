@@ -1,0 +1,54 @@
+name: Cloudflare Worker CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  worker:
+    name: Deploy taso-proxy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Token present?
+        id: token
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLOUDFLARE_API_TOKEN missing — skipping Worker deploy (Cellarer). Prefer Git-connected Worker."
+          fi
+
+      - name: Checkout Code
+        if: steps.token.outputs.present == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: steps.token.outputs.present == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.token.outputs.present == 'true'
+        run: npm ci || npm install
+
+      - name: Test
+        if: steps.token.outputs.present == 'true'
+        run: npm test
+
+      - name: Deploy taso-proxy
+        if: steps.token.outputs.present == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy

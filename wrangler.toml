@@ -1,0 +1,21 @@
+name = "taso-proxy"
+main = "src/index.ts"
+compatibility_date = "2026-08-30"
+
+# Public TASO keys — already in each house's browser client.
+[vars]
+TASO_BASE = "https://spl.torneopal.net/taso/rest/"
+TASO_REFERER = "https://tulospalvelu.palloliitto.fi/"
+TASO_ACCEPT = "json/4h7dznqdxwtp3hsfdyf5r793uahfxy7x"
+SPL_BASE = "https://spl.torneopal.net/taso/rest/"
+SPL_REFERER = "https://tulospalvelu.palloliitto.fi/"
+SPL_ACCEPT = "json/4h7dznqdxwtp3hsfdyf5r793uahfxy7x"
+SSBL_BASE = "https://salibandy-api.torneopal.net/taso/rest/"
+SSBL_REFERER = "https://tulospalvelu.salibandy.fi/"
+SSBL_ACCEPT = "json/zsn3anknxzcfzc23k53jqdcd4pymutsf"
+BASKET_BASE = "https://koripallo-api.torneopal.net/taso/rest/"
+BASKET_REFERER = "https://tulospalvelu.basket.fi/"
+BASKET_ACCEPT = "json/df8e84j9xtdz269euy3h"
+VOLLEY_BASE = "https://lentopallo-api.torneopal.net/taso/rest/"
+VOLLEY_REFERER = "https://lentopallo.torneopal.net/"
+VOLLEY_ACCEPT = "json/df8e84j9xtdz269euy3h"
