@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test tests/cachePolicy.test.ts",
+    "test": "node --experimental-strip-types --test tests/cachePolicy.test.ts tests/upstreamHeaders.test.ts",
     "typecheck": "tsc --noEmit",
     "check:types": "npm run typecheck",
     "deploy": "wrangler deploy",
