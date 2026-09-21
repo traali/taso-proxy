@@ -1,4 +1,5 @@
 import { ALLOWED, cachePolicy } from './cachePolicy'
+import { upstreamHeaders } from './upstream'
 
 type Sport = 'spl' | 'ssbl' | 'basket' | 'volley'
 
@@ -82,13 +83,7 @@ function parsePath(pathname: string): { sport: Sport; endpoint: string } | null 
 
 async function tasoFetch(target: URL, referer: string, accept: string): Promise<{ status: number; raw: string }> {
     const upstream = await fetch(target.toString(), {
-        headers: {
-            Accept: accept,
-            Referer: referer,
-            Origin: referer.replace(/\/$/, ''),
-            'User-Agent':
-                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-        },
+        headers: upstreamHeaders(referer, accept),
         cf: {
             cacheEverything: false,
             cacheTtlByStatus: { '200-299': 120, '400-599': 0 },
