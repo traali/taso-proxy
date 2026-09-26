@@ -39,7 +39,7 @@ const DEFAULTS: Record<Sport, { base: string; referer: string; accept: string }>
     },
     volley: {
         base: 'https://lentopallo-api.torneopal.net/taso/rest/',
-        referer: 'https://lentopallo.torneopal.net/',
+        referer: 'https://tulospalvelu.lentopallo.fi/',
         accept: 'json/df8e84j9xtdz269euy3h',
     },
 }
