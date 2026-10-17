@@ -53,7 +53,8 @@
                 "origin": "https://spl.torneopal.net/taso/rest/getSeasons",
                 "proxy": "https://taso-proxy.sakkoja.workers.dev/spl/getSeasons",
                 "accept": "json/4h7dznqdxwtp3hsfdyf5r793uahfxy7x",
-                "referer": "https://tulospalvelu.palloliitto.fi/"
+                "referer": "https://tulospalvelu.palloliitto.fi/",
+                "hashSalt": "ysnyp4h6e9egetkc3s3v"
             },
             "role": "satellite"
         },
