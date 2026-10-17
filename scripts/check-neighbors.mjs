@@ -12,6 +12,7 @@
  * Future changes: this script is hooked from `npm run visit`. Removing a required
  * contract field, dropping AGENTS.md, or deleting a neighbor repo fails the gate.
  */
+import { createHash } from 'node:crypto'
 import { execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -124,22 +125,49 @@ function planHasFivePoint(text) {
   return PLAN_MARKERS.every((re) => re.test(text))
 }
 
+/**
+ * Palloliitto's TASO (spl.torneopal.net) 403s unsigned calls since Oct 2026.
+ * Sign like tulospalvelu.palloliitto.fi: sha256 hex of `<method>?<salt>&k=v…`
+ * (raw values, query order), `hash` appended last. Hosts without hashSalt unchanged.
+ */
+function signTaso(url, salt) {
+  if (!salt) return url
+  const u = new URL(url)
+  const method = u.pathname.split('/').pop()
+  let input = `${method}?${salt}`
+  for (const [k, v] of u.searchParams) input += `&${k}=${v}`
+  u.searchParams.append('hash', createHash('sha256').update(input).digest('hex'))
+  return u.toString()
+}
+
+/** A real TASO answer: JSON whose call.status is not an error (proxy wraps upstream 403s as JSON). */
+function tasoOk(res) {
+  if (!res.ok || !res.body.includes('{')) return false
+  try {
+    const j = JSON.parse(res.body)
+    return !(j && (j.error || (j.call && j.call.status && String(j.call.status).toLowerCase() !== 'ok')))
+  } catch {
+    return false
+  }
+}
+
 async function probeTaso(taso) {
   if (!taso) return { skip: true }
-  const origin = await getText(taso.origin, { Accept: taso.accept, Referer: taso.referer })
-  if (origin.ok && origin.body.includes('{')) {
-    return { ok: true, via: 'origin', status: origin.status }
+  const headers = { Accept: taso.accept, Referer: taso.referer }
+  const origin = await getText(signTaso(taso.origin, taso.hashSalt), headers)
+  if (tasoOk(origin)) {
+    return { ok: true, via: taso.hashSalt ? 'origin (signed)' : 'origin', status: origin.status }
   }
-  const bust = taso.origin.includes('?') ? `${taso.origin}&_cb=${Date.now()}` : `${taso.origin}?_cb=${Date.now()}`
-  const retry = await getText(bust, { Accept: taso.accept, Referer: taso.referer })
-  if (retry.ok && retry.body.includes('{')) {
+  const bustUrl = taso.origin.includes('?') ? `${taso.origin}&_cb=${Date.now()}` : `${taso.origin}?_cb=${Date.now()}`
+  const retry = await getText(signTaso(bustUrl, taso.hashSalt), headers)
+  if (tasoOk(retry)) {
     return { ok: true, via: 'origin+_cb', status: retry.status, note: `origin ${origin.status} empty/403, cache-bust recovered` }
   }
   const proxy = taso.proxy ? await getText(taso.proxy, { Accept: 'application/json' }) : null
-  if (proxy?.ok && proxy.body.includes('{')) {
+  if (proxy && tasoOk(proxy)) {
     return { ok: true, via: 'proxy', status: proxy.status }
   }
-  return { ok: false, via: 'none', status: origin.status, note: origin.error || `origin ${origin.status}` }
+  return { ok: false, via: 'none', status: origin.status, note: origin.error || `origin ${origin.status}${taso.hashSalt ? ' (signed)' : ''}` }
 }
 
 function logLine(kind, msg) {
