@@ -1,5 +1,6 @@
 import { ALLOWED, cachePolicy } from './cachePolicy'
 import { upstreamHeaders } from './upstream'
+import { signTasoUrl } from './sign'
 
 type Sport = 'spl' | 'ssbl' | 'basket' | 'volley'
 
@@ -82,7 +83,8 @@ function parsePath(pathname: string): { sport: Sport; endpoint: string } | null 
 }
 
 async function tasoFetch(target: URL, referer: string, accept: string): Promise<{ status: number; raw: string }> {
-    const upstream = await fetch(target.toString(), {
+    const signed = await signTasoUrl(target)
+    const upstream = await fetch(signed.toString(), {
         headers: upstreamHeaders(referer, accept),
         cf: {
             cacheEverything: false,
@@ -146,7 +148,7 @@ export default {
 
         const taso = new URL(`${cfg.base.replace(/\/$/, '/')}${endpoint}`)
         url.searchParams.forEach((v, k) => {
-            if (k !== '_cb') taso.searchParams.set(k, v)
+            if (k !== '_cb' && k !== 'hash') taso.searchParams.set(k, v)
         })
 
         const cache = caches.default
