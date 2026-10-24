@@ -75,7 +75,8 @@
                 "origin": "https://salibandy-api.torneopal.net/taso/rest/getTeam?team_id=25301",
                 "proxy": "https://taso-proxy.sakkoja.workers.dev/ssbl/getTeam?team_id=25301",
                 "accept": "json/zsn3anknxzcfzc23k53jqdcd4pymutsf",
-                "referer": "https://tulospalvelu.salibandy.fi/"
+                "referer": "https://tulospalvelu.salibandy.fi/",
+              "hashSalt": "ysnyp4h6e9egetkc3s3v"
             },
             "role": "satellite"
         },
