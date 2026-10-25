@@ -1,3 +1,5 @@
+> **Retired 2026-10-25:** upstream blocks Cloudflare egress; apps call TASO directly.
+
 # taso-proxy
 
 Shared Cloudflare Worker for Torneopal / TASO. Used by football, floorball, basketball, and volleyball Pages apps.
