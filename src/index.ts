@@ -1,6 +1,8 @@
 import { ALLOWED, cachePolicy } from './cachePolicy'
 import { upstreamHeaders } from './upstream'
 import { signTasoUrl } from './sign'
+import { takeBudget, type BudgetNs } from './budget'
+export { UpstreamBudget } from './budget'
 import { localRateLimited, originAllowed, validateParams } from './guards'
 
 type Sport = 'spl' | 'ssbl' | 'basket' | 'volley'
@@ -21,6 +23,8 @@ type Env = {
     VOLLEY_BASE?: string
     VOLLEY_REFERER?: string
     VOLLEY_ACCEPT?: string
+    UPSTREAM_BUDGET?: BudgetNs
+    UPSTREAM_CAP_PER_MIN?: string
     RATE_LIMITER?: { limit(o: { key: string }): Promise<{ success: boolean }> }
 }
 
@@ -176,6 +180,23 @@ async function handle(req: Request, env: Env, origin: string | null): Promise<Re
         return h
     }
 
+    // Stale copy: same body kept 7 days under a separate key, served only when over the global cap.
+    const staleKey = new Request(`${taso.toString()}${taso.search ? '&' : '?'}__stale=1`, { method: 'GET' })
+    const cap = Number(env.UPSTREAM_CAP_PER_MIN) || 60
+    if (!(await takeBudget(env.UPSTREAM_BUDGET, sport, cap))) {
+        const stale = await cache.match(staleKey)
+        if (stale) {
+            const h = new Response(stale.body, stale)
+            h.headers.set('X-Taso-Hit', 'STALE')
+            h.headers.set('Cache-Control', 'no-store')
+            return h
+        }
+        const r = json({ call: { status: 'error', http: 429 }, error: 'upstream_budget', cap_per_min: cap, sport }, 429)
+        r.headers.set('Retry-After', '60')
+        r.headers.set('X-Taso-Hit', 'BUDGET')
+        return r
+    }
+
     // Exactly one upstream call per miss: no cache-bust retry (it doubled load on the federation).
     const { status, raw, mitigated } = await tasoFetch(taso, cfg.referer, cfg.accept)
     const ok = status >= 200 && status < 300
@@ -199,6 +220,13 @@ async function handle(req: Request, env: Env, origin: string | null): Promise<Re
             'X-Taso-Hit': 'MISS',
         },
     })
-    if (valid && policy.store && policy.cc !== 'no-store') await cache.put(cacheKey, out.clone())
+    if (valid && policy.store && policy.cc !== 'no-store') {
+        await cache.put(cacheKey, out.clone())
+        const st = out.clone()
+        const sh = new Response(st.body, st)
+        sh.headers.set('Cache-Control', 'public, max-age=604800')
+        sh.headers.delete('CDN-Cache-Control')
+        await cache.put(staleKey, sh)
+    }
     return out
 }
