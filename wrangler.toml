@@ -23,3 +23,11 @@ BASKET_ACCEPT = "json/df8e84j9xtdz269euy3h"
 VOLLEY_BASE = "https://lentopallo-api.torneopal.net/taso/rest/"
 VOLLEY_REFERER = "https://tulospalvelu.lentopallo.fi/"
 VOLLEY_ACCEPT = "json/df8e84j9xtdz269euy3h"
+
+# Per-IP rate limit (Workers Rate Limiting binding). In-Worker counter is the fallback.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+[ratelimits.simple]
+limit = 120
+period = 60
