@@ -23,6 +23,8 @@ BASKET_ACCEPT = "json/df8e84j9xtdz269euy3h"
 VOLLEY_BASE = "https://lentopallo-api.torneopal.net/taso/rest/"
 VOLLEY_REFERER = "https://tulospalvelu.lentopallo.fi/"
 VOLLEY_ACCEPT = "json/df8e84j9xtdz269euy3h"
+# Global cap on upstream calls (cache misses) per sport per minute, enforced by one Durable Object per sport.
+UPSTREAM_CAP_PER_MIN = "60"
 
 # Per-IP rate limit (Workers Rate Limiting binding). In-Worker counter is the fallback.
 [[ratelimits]]
@@ -31,3 +33,11 @@ namespace_id = "1001"
 [ratelimits.simple]
 limit = 120
 period = 60
+
+[[durable_objects.bindings]]
+name = "UPSTREAM_BUDGET"
+class_name = "UpstreamBudget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UpstreamBudget"]
