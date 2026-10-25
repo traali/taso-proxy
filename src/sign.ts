@@ -4,7 +4,12 @@
  * appended last as `&hash=`. Same scheme as Pelipäivä's tasoRequestUrl.
  */
 export const TASO_HASH_SALT = 'ysnyp4h6e9egetkc3s3v'
-export const TASO_SIGNED_HOSTS: ReadonlySet<string> = new Set(['spl.torneopal.net', 'salibandy-api.torneopal.net'])
+export const TASO_SIGNED_HOSTS: ReadonlySet<string> = new Set([
+    'spl.torneopal.net',
+    'salibandy-api.torneopal.net',
+    'koripallo-api.torneopal.net',
+    'lentopallo-api.torneopal.net',
+])
 
 export async function tasoHash(method: string, params: Iterable<[string, string]>): Promise<string> {
     let input = `${method}?${TASO_HASH_SALT}`

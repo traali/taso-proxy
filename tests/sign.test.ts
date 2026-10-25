@@ -13,7 +13,7 @@ describe('TASO signing', () => {
         )
         assert.equal(await tasoHash('getSeasons', []), sha('getSeasons?ysnyp4h6e9egetkc3s3v'))
     })
-    for (const host of ['spl.torneopal.net', 'salibandy-api.torneopal.net']) {
+    for (const host of ['spl.torneopal.net', 'salibandy-api.torneopal.net', 'koripallo-api.torneopal.net', 'lentopallo-api.torneopal.net']) {
         it(`appends hash last for ${host}`, async () => {
             const u = await signTasoUrl(new URL(`https://${host}/taso/rest/getMatch?match_id=42&hash=bogus`))
             const keys = [...u.searchParams.keys()]
@@ -22,7 +22,7 @@ describe('TASO signing', () => {
         })
     }
     it('leaves unsigned hosts unsigned', async () => {
-        const u = await signTasoUrl(new URL('https://koripallo-api.torneopal.net/taso/rest/getMatch?match_id=1'))
+        const u = await signTasoUrl(new URL('https://example.torneopal.net/taso/rest/getMatch?match_id=1'))
         assert.equal(u.searchParams.has('hash'), false)
     })
 })

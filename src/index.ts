@@ -82,7 +82,7 @@ function parsePath(pathname: string): { sport: Sport; endpoint: string } | null 
     return { sport: 'spl', endpoint: parts[parts.length - 1] }
 }
 
-async function tasoFetch(target: URL, referer: string, accept: string): Promise<{ status: number; raw: string }> {
+async function tasoFetch(target: URL, referer: string, accept: string): Promise<{ status: number; raw: string; mitigated: string }> {
     const signed = await signTasoUrl(target)
     const upstream = await fetch(signed.toString(), {
         headers: upstreamHeaders(referer, accept),
@@ -92,7 +92,7 @@ async function tasoFetch(target: URL, referer: string, accept: string): Promise<
         },
     } as RequestInit)
     const raw = await upstream.text()
-    return { status: upstream.status, raw }
+    return { status: upstream.status, raw, mitigated: upstream.headers.get('cf-mitigated') || '' }
 }
 
 export default {
@@ -153,12 +153,14 @@ export default {
 
         const cache = caches.default
         const cacheKey = new Request(taso.toString(), { method: 'GET' })
-        if (endpoint === 'getMatch') {
-            const hit = await cache.match(cacheKey)
-            if (hit && hit.headers.get('X-Taso-Cache') === 'store-played') return cors(hit)
+        const hit = await cache.match(cacheKey)
+        if (hit) {
+            const h = new Response(hit.body, hit)
+            h.headers.set('X-Taso-Hit', 'HIT')
+            return cors(h)
         }
 
-        let { status, raw } = await tasoFetch(taso, cfg.referer, cfg.accept)
+        let { status, raw, mitigated } = await tasoFetch(taso, cfg.referer, cfg.accept)
 
         if (status === 403 || !raw.trim() || raw.indexOf('{') < 0) {
             const bust = new URL(taso.toString())
@@ -166,6 +168,7 @@ export default {
             const retry = await tasoFetch(bust, cfg.referer, cfg.accept)
             status = retry.status
             raw = retry.raw
+            mitigated = retry.mitigated
         }
 
         // getGroup?matches=1 is often 403 at Torneopal; standings live on getGroup without matches.
@@ -176,6 +179,7 @@ export default {
             const retry = await tasoFetch(slim, cfg.referer, cfg.accept)
             status = retry.status
             raw = retry.raw
+            mitigated = retry.mitigated
         }
 
         const ok = status >= 200 && status < 300 && raw.indexOf('{') >= 0
@@ -184,7 +188,7 @@ export default {
         // Never leak origin 403 as HTTP 403 — the browser paints it red and the client
         // already falls back to origin. Return a JSON error envelope instead.
         const outStatus = ok ? status : 200
-        const outBody = ok ? raw : JSON.stringify({ call: { status: 'error', http: status }, error: 'upstream' })
+        const outBody = ok ? raw : JSON.stringify({ call: { status: 'error', http: status }, error: 'upstream', mitigated: mitigated || undefined, snippet: raw.slice(0, 160) })
 
         const out = new Response(outBody, {
             status: outStatus,
@@ -196,7 +200,8 @@ export default {
                 'X-Taso-Sport': sport,
             },
         })
-        if (policy.store && ok) {
+        out.headers.set('X-Taso-Hit', 'MISS')
+        if (ok && policy.cc !== 'no-store') {
             await cache.put(cacheKey, out.clone())
         }
         return cors(out)
